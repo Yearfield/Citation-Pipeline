@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Citation Pipeline — Review</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: #f5f4f0;
+    color: #2a2a2a;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,.35);
+    position: sticky;
+    top: 0;
+    z-index: 200;
+  }
+  header h1 { font-size: 1.1rem; font-weight: 600; letter-spacing: .03em; }
+  header .meta { font-size: .78rem; color: #9090aa; }
+  header .header-actions { display: flex; gap: 10px; align-items: center; }
+  .btn-header {
+    background: #2d2d4e;
+    border: 1px solid #4a4a7a;
+    color: #c8c8e8;
+    padding: 6px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: .82rem;
+    transition: background .15s;
+  }
+  .btn-header:hover { background: #3a3a6a; }
+
+  /* ── Progress bar ── */
+  #progress-bar {
+    height: 4px;
+    background: #d0cfc8;
+    position: sticky;
+    top: 53px;
+    z-index: 199;
+  }
+  #progress-fill {
+    height: 100%;
+    background: #4a7c59;
+    transition: width .3s;
+  }
+
+  /* ── Step 2 actions (Change 2: Import Chrome Tabs is FIRST) ── */
+  .step2-actions {
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+    padding: 10px 28px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 57px;
+    z-index: 198;
+  }
+  .action-group { display: flex; flex-direction: column; gap: 3px; }
+  .action-helper {
+    font-size: .72rem;
+    color: #666;
+    max-width: 180px;
+    line-height: 1.3;
+  }
+  .btn-action {
+    padding: 7px 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: .85rem;
+    font-weight: 600;
+    transition: filter .15s, opacity .15s;
+  }
+  .btn-action:hover { filter: brightness(1.1); }
+  .btn-action:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-import  { background: #5b7ec4; color: #fff; }
+  .btn-process { background: #4a7c59; color: #fff; }
+  .btn-review  { background: #7a5c4a; color: #fff; }
+  .btn-export  { background: #7a4a6a; color: #fff; }
+
+  /* ── Main layout ── */
+  main { max-width: 1400px; margin: 0 auto; padding: 22px 28px 60px; }
+
+  /* ── Sentence card ── */
+  .sentence-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.12);
+    margin-bottom: 28px;
+    overflow: hidden;
+    border-left: 5px solid #999;
+    transition: border-color .2s;
+  }
+  .sentence-card.approved  { border-left-color: #4a7c59; }
+  .sentence-card.denied    { border-left-color: #c04a4a; }
+  .sentence-card.pending   { border-left-color: #5b7ec4; }
+
+  .card-header {
+    background: #f8f8f5;
+    padding: 12px 18px;
+    border-bottom: 1px solid #e8e8e2;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .card-number {
+    background: #1a1a2e;
+    color: #fff;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .card-sentence {
+    font-style: italic;
+    color: #3a3a3a;
+    font-size: .95rem;
+    flex: 1;
+    line-height: 1.5;
+  }
+  .card-status {
+    font-size: .75rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .status-approved { background: #d4edda; color: #1e5f35; }
+  .status-denied   { background: #f8d7da; color: #72202a; }
+  .status-pending  { background: #d6e4f7; color: #1a3a6a; }
+
+  .card-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+
+  /* ── Left/Right columns ── */
+  .col { padding: 18px; }
+  .col-left  { border-right: 1px solid #eee; }
+  .col-label {
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #888;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .source-text {
+    font-size: .88rem;
+    line-height: 1.7;
+    color: #333;
+    background: #fafafa;
+    padding: 10px 12px;
+    border-radius: 5px;
+    border: 1px solid #e8e8e0;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+  .source-meta {
+    font-size: .78rem;
+    color: #555;
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  /* ── Confidence bar ── */
+  .confidence-bar-wrap {
+    margin: 10px 0 6px;
+  }
+  .confidence-bar-bg {
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .confidence-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width .4s;
+  }
+  .conf-high   { background: #4a7c59; }
+  .conf-medium { background: #c8962a; }
+  .conf-low    { background: #c04a4a; }
+  .confidence-scores {
+    font-size: .74rem;
+    color: #666;
+    margin-top: 4px;
+    display: flex;
+    gap: 12px;
+  }
+
+  /* ── Validation warnings ── */
+  .warnings {
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 5px;
+    padding: 8px 12px;
+    font-size: .78rem;
+    color: #6a5000;
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  /* ── PDF page render ── */
+  .pdf-page-img {
+    max-width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-top: 8px;
+    cursor: zoom-in;
+  }
+
+  /* ── Citation preview ── */
+  .citation-preview {
+    background: #f4f0e8;
+    border-left: 3px solid #c8962a;
+    padding: 8px 12px;
+    font-size: .85rem;
+    font-style: italic;
+    border-radius: 0 4px 4px 0;
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+
+  /* ── Page number field ── */
+  .page-field-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .page-field-wrap label { font-size: .78rem; color: #555; }
+  .page-field {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: .85rem;
+    width: 90px;
+  }
+  .page-method {
+    font-size: .72rem;
+    color: #888;
+    font-style: italic;
+  }
+
+  /* ── Unknown fields ── */
+  .unknown-fields { margin-top: 8px; }
+  .unknown-field-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+  .unknown-field-row label {
+    font-size: .76rem;
+    color: #c04a4a;
+    min-width: 70px;
+    font-weight: 600;
+  }
+  .unknown-field-row input {
+    flex: 1;
+    border: 1px solid #e09090;
+    border-radius: 4px;
+    padding: 3px 7px;
+    font-size: .82rem;
+    background: #fff8f8;
+  }
+
+  /* ── Approve/Deny buttons ── */
+  .card-actions {
+    padding: 12px 18px;
+    border-top: 1px solid #eee;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    background: #f8f8f5;
+  }
+  .btn-approve {
+    background: #4a7c59;
+    color: #fff;
+    border: none;
+    padding: 8px 22px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: .9rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+  }
+  .btn-approve:hover { background: #3a6448; }
+  .btn-deny {
+    background: #c04a4a;
+    color: #fff;
+    border: none;
+    padding: 8px 22px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: .9rem;
+    font-weight: 700;
+  }
+  .btn-deny:hover { background: #a03a3a; }
+  .btn-manual {
+    background: #5b5b8a;
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: .85rem;
+  }
+  .btn-skip {
+    background: #888;
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: .85rem;
+  }
+
+  /* ── Denial reason selector ── */
+  .deny-panel {
+    background: #fff5f5;
+    border: 1px solid #f5c0c0;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-top: 10px;
+    display: none;
+  }
+  .deny-panel.visible { display: block; }
+  .deny-panel p { font-size: .82rem; color: #555; margin-bottom: 8px; }
+  .deny-reason-btns { display: flex; flex-wrap: wrap; gap: 7px; }
+  .deny-reason-btn {
+    background: #fff;
+    border: 1px solid #d08080;
+    color: #7a2020;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: .78rem;
+    transition: background .15s;
+  }
+  .deny-reason-btn:hover { background: #fde8e8; }
+
+  /* ── Multiple candidates ── */
+  .candidates-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 8px 18px 0;
+    border-top: 1px solid #eee;
+    background: #f8f8f5;
+    flex-wrap: wrap;
+  }
+  .cand-tab {
+    padding: 4px 12px;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    font-size: .78rem;
+    background: #fff;
+  }
+  .cand-tab.active {
+    background: #1a1a2e;
+    color: #fff;
+    border-color: #1a1a2e;
+  }
+
+  /* ── Manual citation modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.3);
+    width: min(640px, 95vw);
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px;
+  }
+  .modal h2 { font-size: 1.05rem; margin-bottom: 16px; }
+  .modal-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 0;
+  }
+  .modal-tab {
+    padding: 6px 16px;
+    cursor: pointer;
+    font-size: .85rem;
+    border-radius: 4px 4px 0 0;
+    border: 1px solid transparent;
+    border-bottom: none;
+    color: #555;
+  }
+  .modal-tab.active {
+    border-color: #ccc;
+    border-bottom: 2px solid #fff;
+    margin-bottom: -2px;
+    background: #fff;
+    color: #1a1a2e;
+    font-weight: 600;
+  }
+  .modal-tab-content { display: none; }
+  .modal-tab-content.active { display: block; }
+  .form-row { margin-bottom: 12px; }
+  .form-row label { display: block; font-size: .8rem; color: #555; margin-bottom: 4px; }
+  .form-row input, .form-row select, .form-row textarea {
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: .88rem;
+  }
+  .form-row textarea { min-height: 70px; resize: vertical; }
+  .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .btn-save {
+    background: #4a7c59;
+    color: #fff;
+    border: none;
+    padding: 8px 22px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: .88rem;
+    font-weight: 600;
+  }
+  .btn-cancel {
+    background: #888;
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: .88rem;
+  }
+  .hc-search-results {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-top: 6px;
+  }
+  .hc-result-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    font-size: .82rem;
+  }
+  .hc-result-item:hover { background: #f0f4ff; }
+  .hc-result-item:last-child { border-bottom: none; }
+
+  /* ── Manage Styles modal (Change 1) ── */
+  .styles-library-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .83rem;
+    margin-top: 10px;
+  }
+  .styles-library-table th {
+    text-align: left;
+    padding: 6px 10px;
+    background: #f0f0f0;
+    border-bottom: 2px solid #ddd;
+    font-weight: 600;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #555;
+  }
+  .styles-library-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #eee;
+    vertical-align: top;
+  }
+  .styles-library-table tr:hover td { background: #f8f8f8; }
+  .btn-sm {
+    padding: 3px 9px;
+    font-size: .75rem;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    cursor: pointer;
+    background: #fff;
+    margin-right: 4px;
+  }
+  .btn-sm-danger { border-color: #e08080; color: #c04a4a; }
+  .btn-sm-danger:hover { background: #fde8e8; }
+  .btn-sm-primary { border-color: #7090c0; color: #2a4a8a; }
+  .btn-sm-primary:hover { background: #e8f0ff; }
+
+  .template-row {
+    background: #fafafa;
+    border: 1px solid #e8e8e0;
+    border-radius: 5px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .template-row label {
+    font-size: .74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #666;
+    letter-spacing: .04em;
+    display: block;
+    margin-bottom: 3px;
+  }
+  .template-row .raw-example {
+    font-size: .74rem;
+    color: #888;
+    font-style: italic;
+    margin-bottom: 5px;
+    padding: 3px 6px;
+    background: #f0f0f0;
+    border-radius: 3px;
+  }
+  .template-row input {
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-size: .84rem;
+    font-family: 'Courier New', monospace;
+  }
+
+  .upload-area {
+    border: 2px dashed #ccc;
+    border-radius: 6px;
+    padding: 30px;
+    text-align: center;
+    color: #888;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+  .upload-area:hover { border-color: #7090c0; background: #f0f4ff; color: #3a5a9a; }
+  .upload-area input[type=file] { display: none; }
+
+  .loading-spinner {
+    display: none;
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-size: .9rem;
+  }
+  .loading-spinner.visible { display: block; }
+
+  /* ── Toast notifications ── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: .88rem;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity .25s, transform .25s;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ── Finalise section ── */
+  #finalise-section {
+    background: #fff;
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    margin-top: 28px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.1);
+    display: none;
+  }
+  #finalise-section.visible { display: block; }
+  .btn-finalise {
+    background: #1a1a2e;
+    color: #fff;
+    border: none;
+    padding: 12px 36px;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 12px;
+    letter-spacing: .02em;
+  }
+  .btn-finalise:hover { background: #2a2a4e; }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .card-body { grid-template-columns: 1fr; }
+    .col-left  { border-right: none; border-bottom: 1px solid #eee; }
+    .step2-actions { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════════════ -->
+<header>
+  <div>
+    <h1>Citation Pipeline — Review Panel</h1>
+    <div class="meta" id="session-meta">
+      {% if session %}
+        Session <strong>{{ session.session_id }}</strong>
+        &nbsp;·&nbsp; {{ session.document | default('', true) }}
+      {% endif %}
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn-header" id="btn-manage-styles" onclick="openStylesModal()">
+      Manage Styles
+    </button>
+  </div>
+</header>
+
+<!-- ── Progress bar ── -->
+<div id="progress-bar"><div id="progress-fill" style="width:0%"></div></div>
+
+<!-- ══ STEP 2 ACTIONS (Change 2: Import Chrome Tabs is FIRST) ═════════════ -->
+<div class="step2-actions">
+
+  <!-- 1. Import Chrome Tabs — FIRST per Change 2 -->
+  <div class="action-group">
+    <button class="btn-action btn-import" id="btn-import-tabs"
+            onclick="importChromeTabs()">
+      Import Chrome Tabs
+    </button>
+    <span class="action-helper">
+      Import open browser tabs as sources before processing your document.
+    </span>
+  </div>
+
+  <!-- 2. Process Document -->
+  <div class="action-group">
+    <button class="btn-action btn-process" id="btn-process"
+            onclick="processDocument()">
+      Process Document
+    </button>
+  </div>
+
+  <!-- 3. Open Review Panel -->
+  <div class="action-group">
+    <button class="btn-action btn-review" id="btn-open-review"
+            onclick="openReviewPanel()">
+      Open Review Panel
+    </button>
+  </div>
+
+  <!-- 4. Export Document -->
+  <div class="action-group">
+    <button class="btn-action btn-export" id="btn-export"
+            onclick="exportDocument()">
+      Export Document
+    </button>
+  </div>
+
+</div>
+
+<!-- ══ MAIN CONTENT ════════════════════════════════════════════════════════ -->
+<main>
+
+  <div id="cards-container">
+    {% if session and session.sentences %}
+      {% for i, trigger in session.sentences.items() %}
+      {% set candidates = session.candidates.get(i, []) %}
+      {% set confirmed  = session.confirmed.get(i) %}
+      <div class="sentence-card {% if confirmed %}approved{% else %}pending{% endif %}"
+           id="card-{{ i }}"
+           data-sentence-id="{{ i }}"
+           data-session-id="{{ session.session_id }}">
+
+        <!-- Card header -->
+        <div class="card-header">
+          <div class="card-number">{{ loop.index }}</div>
+          <div class="card-sentence">"{{ trigger.sentence }}"</div>
+          <div class="card-status
+               {% if confirmed %}status-approved{% else %}status-pending{% endif %}">
+            {% if confirmed %}Approved{% else %}Pending{% endif %}
+          </div>
+        </div>
+
+        <!-- Candidate tabs (if multiple candidates) -->
+        {% if candidates | length > 1 %}
+        <div class="candidates-tabs" id="tabs-{{ i }}">
+          {% for cand in candidates %}
+          <div class="cand-tab {% if loop.first %}active{% endif %}"
+               onclick="showCandidate('{{ i }}', {{ loop.index0 }})">
+            #{{ loop.index }}
+            ({{ '%.0f'|format(cand.confidence * 100) if cand.confidence else '?' }}%)
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Candidates -->
+        {% for cand in candidates %}
+        <div class="card-body" id="cand-{{ i }}-{{ loop.index0 }}"
+             style="{{ 'display:none' if not loop.first else '' }}">
+
+          <!-- Left: trigger context -->
+          <div class="col col-left">
+            <div class="col-label">Your sentence</div>
+            <div class="source-text">{{ trigger.sentence }}.</div>
+
+            {% if confirmed %}
+            <div class="col-label" style="margin-top:14px">Confirmed citation</div>
+            <div class="citation-preview">{{ confirmed.citation }}</div>
+            {% else %}
+            <!-- Confidence -->
+            <div class="col-label" style="margin-top:14px">Confidence</div>
+            {% set conf = cand.confidence | default(0) %}
+            {% set conf_pct = (conf * 100) | int %}
+            {% set conf_cls = 'conf-high' if conf >= 0.75 else ('conf-medium' if conf >= 0.55 else 'conf-low') %}
+            <div class="confidence-bar-wrap">
+              <div class="confidence-bar-bg">
+                <div class="confidence-bar-fill {{ conf_cls }}"
+                     style="width:{{ conf_pct }}%"></div>
+              </div>
+            </div>
+            <div class="confidence-scores">
+              <span>Composite: <strong>{{ '%.2f'|format(conf) }}</strong></span>
+              <span>Sem: {{ '%.2f'|format(cand.sem_score | default(0)) }}</span>
+              <span>BM25: {{ '%.2f'|format(cand.bm25_score | default(0)) }}</span>
+              {% if cand.ce_score is defined %}
+              <span>CE: {{ '%.2f'|format(cand.ce_score) }}</span>
+              {% endif %}
+            </div>
+
+            <!-- Validation warnings -->
+            {% if cand.validation %}
+            <div class="warnings">
+              <strong>Validation warnings:</strong><br>
+              {% for key, msg in cand.validation.items() %}
+              &bull; {{ msg }}<br>
+              {% endfor %}
+            </div>
+            {% endif %}
+            {% endif %}
+          </div>
+
+          <!-- Right: source text and citation preview -->
+          <div class="col">
+            {% if cand.row %}
+            <div class="col-label">
+              Source — {{ cand.row[3] | default('Unknown author') }}
+              ({{ cand.row[5] | default('n.d.') }})
+            </div>
+            <div class="source-text" id="src-text-{{ i }}-{{ loop.index0 }}">
+              {{ cand.row[22] | default('') }}
+            </div>
+            <div class="source-meta">
+              <em>{{ cand.row[4] | default('') }}</em>
+              {% if cand.row[6] %} · {{ cand.row[6] }}{% endif %}
+              {% if cand.row[7] %} {{ cand.row[7] }}{% endif %}
+              {% if cand.row[8] %}/{{ cand.row[8] }}{% endif %}
+            </div>
+
+            {% if not confirmed %}
+            <!-- PDF page render -->
+            {% if cand.row[16] and cand.row[16] != 'hardcopy' %}
+            <div class="col-label" style="margin-top:12px">
+              Source page
+              <span class="page-method">({{ cand.row[19] | default('') }})</span>
+            </div>
+            <img class="pdf-page-img"
+                 id="pdf-img-{{ i }}-{{ loop.index0 }}"
+                 src=""
+                 alt="Loading page..."
+                 onclick="zoomImage(this)"
+                 data-pdf="{{ cand.row[16] }}"
+                 data-page="{{ cand.row[18] | default(0) }}" />
+            {% endif %}
+
+            <!-- Citation preview -->
+            <div class="col-label" style="margin-top:12px">Citation preview</div>
+            <div class="citation-preview"
+                 id="cit-preview-{{ i }}-{{ loop.index0 }}">
+              {{ cand.citation_preview | default('') }}
+            </div>
+
+            <!-- Page number field -->
+            <div class="page-field-wrap">
+              <label>Page:</label>
+              <input type="text" class="page-field"
+                     id="page-{{ i }}-{{ loop.index0 }}"
+                     value="{{ cand.row[17] | default('') }}"
+                     placeholder="e.g. 45">
+              <span class="page-method">({{ cand.row[19] | default('') }})</span>
+            </div>
+
+            <!-- Unknown fields -->
+            {% if cand.unknowns %}
+            <div class="col-label" style="margin-top:10px">Unknown fields — edit before approving</div>
+            <div class="unknown-fields" id="unknowns-{{ i }}-{{ loop.index0 }}">
+              {% for field in cand.unknowns %}
+              <div class="unknown-field-row">
+                <label>{{ field }}</label>
+                <input type="text" name="unknown_{{ field }}"
+                       placeholder="Enter {{ field }}">
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+            {% endif %}
+            {% endif %}
+
+          </div>
+        </div>
+        {% endfor %}
+
+        <!-- Actions -->
+        {% if not confirmed %}
+        <div class="card-actions">
+          {% if candidates %}
+          <button class="btn-approve"
+                  onclick="approveCard('{{ i }}', {{ candidates[0].para_idx }})">
+            ✓ Approve
+          </button>
+          <button class="btn-deny"
+                  onclick="showDenyPanel('{{ i }}')">
+            ✗ Deny
+          </button>
+          {% endif %}
+          <button class="btn-manual"
+                  onclick="openManualModal('{{ i }}', '{{ session.session_id }}')">
+            Manual Citation
+          </button>
+          <button class="btn-skip" onclick="skipCard('{{ i }}')">
+            Skip
+          </button>
+        </div>
+
+        <!-- Deny panel -->
+        <div class="deny-panel" id="deny-panel-{{ i }}">
+          <p>Select a reason for denying this citation:</p>
+          <div class="deny-reason-btns">
+            <button class="deny-reason-btn"
+                    onclick="denyCard('{{ i }}', 'wrong_topic')">
+              Wrong topic entirely
+            </button>
+            <button class="deny-reason-btn"
+                    onclick="denyCard('{{ i }}', 'wrong_argument')">
+              Correct topic, wrong argument
+            </button>
+            <button class="deny-reason-btn"
+                    onclick="denyCard('{{ i }}', 'too_tangential')">
+              Too tangential
+            </button>
+            <button class="deny-reason-btn"
+                    onclick="denyCard('{{ i }}', 'wrong_time_period')">
+              Wrong time period
+            </button>
+            <button class="deny-reason-btn"
+                    onclick="denyCard('{{ i }}', 'not_authoritative')">
+              Source not authoritative enough
+            </button>
+            <button class="deny-reason-btn"
+                    onclick="denyCard('{{ i }}', 'better_source_exists')">
+              Better source exists
+            </button>
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="color:#888; text-align:center; margin-top:40px;">
+        No trigger sentences found in this session, or session data is unavailable.
+      </p>
+    {% endif %}
+  </div>
+
+  <!-- Finalise section -->
+  <div id="finalise-section">
+    <h2>All citations reviewed</h2>
+    <p style="color:#555; margin-top:8px;">
+      Click Finalise to lock this session. Denied sentences will be queued
+      for re-processing in a new session.
+    </p>
+    <button class="btn-finalise" onclick="finaliseSession()">Finalise Session</button>
+  </div>
+
+</main>
+
+<!-- ══ MANUAL CITATION MODAL ═══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="manual-modal">
+  <div class="modal">
+    <h2>Manual Citation Entry</h2>
+    <div class="modal-tabs">
+      <div class="modal-tab active" onclick="switchManualTab('search')">Existing Source</div>
+      <div class="modal-tab" onclick="switchManualTab('new')">New Source</div>
+    </div>
+
+    <!-- Search existing hard-copy sources -->
+    <div class="modal-tab-content active" id="manual-tab-search">
+      <div class="form-row">
+        <label>Search hard-copy library</label>
+        <input type="text" id="hc-search-input"
+               oninput="searchHardcopy(this.value)"
+               placeholder="Author, title, or keyword...">
+      </div>
+      <div class="hc-search-results" id="hc-search-results"></div>
+      <div class="form-row" id="hc-selected-info" style="display:none">
+        <label>Selected source</label>
+        <div id="hc-selected-display"
+             style="padding:8px;background:#f0f4ff;border-radius:4px;font-size:.85rem;"></div>
+      </div>
+      <div class="form-row">
+        <label>Page number</label>
+        <input type="text" id="hc-page-input" placeholder="e.g. 45">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-save" onclick="confirmHardcopyCitation()">Confirm Citation</button>
+        <button class="btn-cancel" onclick="closeManualModal()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- New hard-copy source form -->
+    <div class="modal-tab-content" id="manual-tab-new">
+      <div class="form-row">
+        <label>Entry type</label>
+        <select id="new-hc-entrytype">
+          <option value="book">Book / Monograph</option>
+          <option value="article">Journal Article</option>
+          <option value="incollection">Chapter in Edited Volume</option>
+          <option value="phdthesis">Thesis / Dissertation</option>
+          <option value="legislation">Legislation</option>
+          <option value="case">Case</option>
+          <option value="misc">Other / Online</option>
+        </select>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-row">
+          <label>Author(s)</label>
+          <input type="text" id="new-hc-author" placeholder="Smith, John and Jones, Mary">
+        </div>
+        <div class="form-row">
+          <label>Year</label>
+          <input type="text" id="new-hc-year" placeholder="2021">
+        </div>
+        <div class="form-row">
+          <label>Title</label>
+          <input type="text" id="new-hc-title" placeholder="Title of the work">
+        </div>
+        <div class="form-row">
+          <label>Publisher</label>
+          <input type="text" id="new-hc-publisher">
+        </div>
+        <div class="form-row">
+          <label>Place of Publication</label>
+          <input type="text" id="new-hc-place">
+        </div>
+        <div class="form-row">
+          <label>Page number (this citation)</label>
+          <input type="text" id="new-hc-page" placeholder="e.g. 45">
+        </div>
+        <div class="form-row">
+          <label>Journal / Volume</label>
+          <input type="text" id="new-hc-journal">
+        </div>
+        <div class="form-row">
+          <label>Issue</label>
+          <input type="text" id="new-hc-issue">
+        </div>
+        <div class="form-row">
+          <label>Editor(s)</label>
+          <input type="text" id="new-hc-editor">
+        </div>
+        <div class="form-row">
+          <label>Book title (for chapters)</label>
+          <input type="text" id="new-hc-booktitle">
+        </div>
+      </div>
+      <div class="form-row">
+        <label>URL</label>
+        <input type="text" id="new-hc-url">
+      </div>
+      <div class="form-row">
+        <label>Notes / Access date</label>
+        <textarea id="new-hc-notes" placeholder="Any additional information..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-save" onclick="saveNewHardcopy()">Save and Cite</button>
+        <button class="btn-cancel" onclick="closeManualModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MANAGE STYLES MODAL (Change 1) ══════════════════════════════════════ -->
+<div class="modal-overlay" id="styles-modal">
+  <div class="modal" style="width:min(800px,96vw)">
+    <h2>Manage Citation Styles</h2>
+    <div class="modal-tabs">
+      <div class="modal-tab active" onclick="switchStyleTab('library')">Style Library</div>
+      <div class="modal-tab" onclick="switchStyleTab('upload')">Add from PDF</div>
+      <div class="modal-tab" onclick="switchStyleTab('manual')">Add Manually</div>
+    </div>
+
+    <!-- Style Library tab -->
+    <div class="modal-tab-content active" id="style-tab-library">
+      <div style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+        <p style="font-size:.84rem;color:#555;">
+          All saved citation styles. Select one to use it in future sessions.
+        </p>
+        <button class="btn-sm btn-sm-primary" onclick="refreshStylesList()">↻ Refresh</button>
+      </div>
+      <table class="styles-library-table">
+        <thead>
+          <tr>
+            <th>Style Name</th>
+            <th>Source PDF</th>
+            <th>Date Added</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="styles-table-body">
+          <tr><td colspan="4" style="color:#888;text-align:center;padding:20px;">Loading...</td></tr>
+        </tbody>
+      </table>
+      <div class="modal-actions" style="justify-content:flex-end;">
+        <button class="btn-cancel" onclick="closeStylesModal()">Close</button>
+      </div>
+    </div>
+
+    <!-- Add from PDF tab -->
+    <div class="modal-tab-content" id="style-tab-upload">
+      <p style="font-size:.84rem;color:#555;margin-bottom:14px;">
+        Upload a PDF style guide. The system will extract citation rules
+        and present them for your review before saving. Nothing is saved until
+        you confirm.
+      </p>
+      <div class="upload-area" id="pdf-upload-area"
+           onclick="document.getElementById('pdf-file-input').click()">
+        <input type="file" id="pdf-file-input" accept=".pdf"
+               onchange="handlePdfUpload(this)">
+        <div style="font-size:2rem;margin-bottom:8px;">📄</div>
+        <div><strong>Click to select a PDF</strong></div>
+        <div style="font-size:.8rem;margin-top:4px;">Accepts text-based PDF style guides</div>
+      </div>
+      <div class="loading-spinner" id="pdf-parse-spinner">
+        Parsing PDF — extracting citation rules...
+      </div>
+
+      <!-- Parsed review panel (shown after parse) -->
+      <div id="parsed-review-panel" style="display:none;margin-top:16px;">
+        <h3 style="font-size:.95rem;margin-bottom:12px;">Review Parsed Style</h3>
+        <div class="form-row">
+          <label>Style name</label>
+          <input type="text" id="parsed-style-name" placeholder="e.g. Chicago Notes-Bibliography">
+        </div>
+        <div class="form-grid-2">
+          <div class="form-row">
+            <label>Citation mode</label>
+            <select id="parsed-citation-mode">
+              <option value="footnote">Footnote (Notes-Bibliography)</option>
+              <option value="author-date">Author-Date (APA, Harvard)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Author separator</label>
+            <input type="text" id="parsed-author-sep" placeholder=" and ">
+          </div>
+        </div>
+        <div style="display:flex;gap:20px;margin-bottom:12px;">
+          <label style="font-size:.82rem;display:flex;align-items:center;gap:6px;">
+            <input type="checkbox" id="parsed-ibid"> Uses ibid
+          </label>
+          <label style="font-size:.82rem;display:flex;align-items:center;gap:6px;">
+            <input type="checkbox" id="parsed-shortform"> Uses short-form
+          </label>
+        </div>
+        <div class="col-label">Citation templates — edit to match your style guide exactly</div>
+        <div id="parsed-templates-container"></div>
+        <div class="form-row">
+          <label>Notes (rules the parser could not encode)</label>
+          <textarea id="parsed-notes" placeholder="Any additional notes..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-save" onclick="saveParsedStyle()">Save Style</button>
+          <button class="btn-cancel" onclick="resetPdfUpload()">Upload Different PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Manually tab -->
+    <div class="modal-tab-content" id="style-tab-manual">
+      <p style="font-size:.84rem;color:#555;margin-bottom:14px;">
+        Enter style rules manually. Use {field_name} placeholders for BibTeX fields.
+      </p>
+      <div class="form-row">
+        <label>Style name</label>
+        <input type="text" id="manual-style-name" placeholder="e.g. OSCOLA 4th Edition">
+      </div>
+      <div class="form-grid-2">
+        <div class="form-row">
+          <label>Citation mode</label>
+          <select id="manual-citation-mode">
+            <option value="footnote">Footnote</option>
+            <option value="author-date">Author-Date</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Author separator</label>
+          <input type="text" id="manual-author-sep" value=" and ">
+        </div>
+      </div>
+      <div style="display:flex;gap:20px;margin-bottom:12px;">
+        <label style="font-size:.82rem;display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="manual-ibid"> Uses ibid
+        </label>
+        <label style="font-size:.82rem;display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="manual-shortform"> Uses short-form
+        </label>
+      </div>
+      <div class="col-label">Templates</div>
+      <div id="manual-templates-container">
+        <!-- populated by JS -->
+      </div>
+      <div class="modal-actions">
+        <button class="btn-save" onclick="saveManualStyle()">Save Style</button>
+        <button class="btn-cancel" onclick="closeStylesModal()">Cancel</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Toast ── -->
+<div id="toast"></div>
+
+<!-- ══ JAVASCRIPT ══════════════════════════════════════════════════════════ -->
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const SESSION_ID = "{{ session.session_id if session else '' }}";
+let currentManualSentenceId = null;
+let selectedHardcopyId      = null;
+let parsedStyleData         = null;
+const ENTRY_TYPES = ['book','article','incollection','phdthesis','legislation','case','misc'];
+
+// ── Initialisation ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadPdfPageImages();
+  updateProgress();
+  checkFinalise();
+});
+
+// ── PDF page image loading ─────────────────────────────────────────────────
+function loadPdfPageImages() {
+  document.querySelectorAll('.pdf-page-img').forEach(img => {
+    const pdfPath = img.dataset.pdf;
+    const pageNum = img.dataset.page || 0;
+    if (!pdfPath || pdfPath === 'hardcopy') return;
+    fetch(`/pdf_page?pdf_path=${encodeURIComponent(pdfPath)}&page_num=${pageNum}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.image) img.src = `data:image/png;base64,${d.image}`;
+        else img.alt = 'Page image unavailable';
+      })
+      .catch(() => { img.alt = 'Page image unavailable'; });
+  });
+}
+
+function zoomImage(img) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:900;display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
+  const big = document.createElement('img');
+  big.src = img.src;
+  big.style.cssText = 'max-width:90vw;max-height:90vh;border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.5);';
+  overlay.appendChild(big);
+  overlay.onclick = () => overlay.remove();
+  document.body.appendChild(overlay);
+}
+
+// ── Candidate tab switching ────────────────────────────────────────────────
+function showCandidate(sentenceId, candIdx) {
+  const tabs = document.querySelectorAll(`#tabs-${sentenceId} .cand-tab`);
+  tabs.forEach((t, i) => t.classList.toggle('active', i === candIdx));
+  const bodies = document.querySelectorAll(`[id^="cand-${sentenceId}-"]`);
+  bodies.forEach((b, i) => b.style.display = i === candIdx ? '' : 'none');
+  loadPdfPageImages();
+}
+
+// ── Progress ───────────────────────────────────────────────────────────────
+function updateProgress() {
+  const total    = document.querySelectorAll('.sentence-card').length;
+  const reviewed = document.querySelectorAll('.sentence-card.approved,.sentence-card.denied').length;
+  const pct      = total > 0 ? (reviewed / total) * 100 : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+function checkFinalise() {
+  const total   = document.querySelectorAll('.sentence-card').length;
+  const pending = document.querySelectorAll('.sentence-card.pending').length;
+  const finalise = document.getElementById('finalise-section');
+  if (total > 0 && pending === 0) finalise.classList.add('visible');
+  else finalise.classList.remove('visible');
+}
+
+// ── Approve ────────────────────────────────────────────────────────────────
+function approveCard(sentenceId, paraIdx) {
+  const activeTab = document.querySelector(`#tabs-${sentenceId} .cand-tab.active`);
+  let candIdx = 0;
+  if (activeTab) {
+    const tabs = [...document.querySelectorAll(`#tabs-${sentenceId} .cand-tab`)];
+    candIdx = tabs.indexOf(activeTab);
+  }
+
+  const pageInput = document.getElementById(`page-${sentenceId}-${candIdx}`);
+  const overridePage = pageInput ? pageInput.value.trim() : null;
+
+  // Collect unknown field edits
+  const unknownEdits = {};
+  const unknownContainer = document.getElementById(`unknowns-${sentenceId}-${candIdx}`);
+  if (unknownContainer) {
+    unknownContainer.querySelectorAll('input[name^="unknown_"]').forEach(inp => {
+      const field = inp.name.replace('unknown_', '');
+      if (inp.value.trim()) unknownEdits[field] = inp.value.trim();
+    });
+  }
+
+  fetch('/approve', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      session_id:    SESSION_ID,
+      sentence_id:   sentenceId,
+      para_idx:      paraIdx,
+      override_page: overridePage || null,
+      unknown_edits: unknownEdits
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.status === 'approved') {
+      const card = document.getElementById(`card-${sentenceId}`);
+      card.classList.remove('pending');
+      card.classList.add('approved');
+      card.querySelector('.card-status').textContent = 'Approved';
+      card.querySelector('.card-status').className = 'card-status status-approved';
+      const actions = card.querySelector('.card-actions');
+      if (actions) actions.remove();
+      const denyPanel = card.querySelector('.deny-panel');
+      if (denyPanel) denyPanel.remove();
+      showToast('Citation approved.');
+      updateProgress();
+      checkFinalise();
+    }
+  });
+}
+
+// ── Deny ───────────────────────────────────────────────────────────────────
+function showDenyPanel(sentenceId) {
+  const panel = document.getElementById(`deny-panel-${sentenceId}`);
+  panel.classList.toggle('visible');
+}
+
+function denyCard(sentenceId, reason) {
+  const sentence = document.querySelector(`#card-${sentenceId} .card-sentence`).textContent.trim();
+  fetch('/deny', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      session_id: SESSION_ID,
+      sentence_id: sentenceId,
+      sentence:   sentence,
+      reason:     reason
+    })
+  })
+  .then(r => r.json())
+  .then(() => {
+    const card = document.getElementById(`card-${sentenceId}`);
+    card.classList.remove('pending');
+    card.classList.add('denied');
+    card.querySelector('.card-status').textContent = 'Denied';
+    card.querySelector('.card-status').className = 'card-status status-denied';
+    const panel = document.getElementById(`deny-panel-${sentenceId}`);
+    if (panel) panel.classList.remove('visible');
+    showToast('Citation denied.');
+    updateProgress();
+    checkFinalise();
+  });
+}
+
+function skipCard(sentenceId) {
+  showToast('Skipped — sentence remains pending.');
+}
+
+// ── Manual citation modal ──────────────────────────────────────────────────
+function openManualModal(sentenceId, sessionId) {
+  currentManualSentenceId = sentenceId;
+  selectedHardcopyId = null;
+  document.getElementById('hc-search-input').value = '';
+  document.getElementById('hc-search-results').innerHTML = '';
+  document.getElementById('hc-selected-info').style.display = 'none';
+  document.getElementById('hc-page-input').value = '';
+  document.getElementById('manual-modal').classList.add('visible');
+}
+
+function closeManualModal() {
+  document.getElementById('manual-modal').classList.remove('visible');
+  currentManualSentenceId = null;
+  selectedHardcopyId = null;
+}
+
+function switchManualTab(tab) {
+  document.querySelectorAll('#manual-modal .modal-tab').forEach((t, i) => {
+    const tabs = ['search','new'];
+    t.classList.toggle('active', tabs[i] === tab);
+  });
+  document.getElementById('manual-tab-search').classList.toggle('active', tab === 'search');
+  document.getElementById('manual-tab-new').classList.toggle('active', tab === 'new');
+}
+
+function searchHardcopy(query) {
+  if (query.length < 2) {
+    document.getElementById('hc-search-results').innerHTML = '';
+    return;
+  }
+  fetch(`/hardcopy/search?q=${encodeURIComponent(query)}`)
+    .then(r => r.json())
+    .then(d => {
+      const container = document.getElementById('hc-search-results');
+      if (!d.results.length) {
+        container.innerHTML = '<div class="hc-result-item" style="color:#888">No matches found.</div>';
+        return;
+      }
+      container.innerHTML = d.results.map(src =>
+        `<div class="hc-result-item" onclick="selectHardcopy('${src.source_id}', ${JSON.stringify(src).replace(/'/g,"\\'")} )">
+          <strong>${src.author || '?'}</strong> — ${src.title || ''}
+          <span style="color:#888;font-size:.76rem;"> (${src.year || 'n.d.'}) [${src.use_count || 0}x cited]</span>
+        </div>`
+      ).join('');
+    });
+}
+
+function selectHardcopy(sourceId, source) {
+  selectedHardcopyId = sourceId;
+  document.getElementById('hc-selected-info').style.display = 'block';
+  document.getElementById('hc-selected-display').textContent =
+    `${source.author || '?'} — ${source.title || ''} (${source.year || 'n.d.'})`;
+  document.getElementById('hc-search-results').innerHTML = '';
+}
+
+function confirmHardcopyCitation() {
+  if (!selectedHardcopyId) { showToast('Select a source first.'); return; }
+  const page = document.getElementById('hc-page-input').value.trim();
+  fetch('/hardcopy/cite', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      session_id:  SESSION_ID,
+      sentence_id: currentManualSentenceId,
+      source_id:   selectedHardcopyId,
+      page:        page
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.status === 'confirmed') {
+      const card = document.getElementById(`card-${currentManualSentenceId}`);
+      card.classList.remove('pending'); card.classList.add('approved');
+      card.querySelector('.card-status').textContent = 'Approved';
+      card.querySelector('.card-status').className = 'card-status status-approved';
+      closeManualModal();
+      showToast('Hard-copy citation confirmed.');
+      updateProgress(); checkFinalise();
+    }
+  });
+}
+
+function saveNewHardcopy() {
+  const fields = {
+    entrytype:  document.getElementById('new-hc-entrytype').value,
+    author:     document.getElementById('new-hc-author').value,
+    year:       document.getElementById('new-hc-year').value,
+    title:      document.getElementById('new-hc-title').value,
+    publisher:  document.getElementById('new-hc-publisher').value,
+    place:      document.getElementById('new-hc-place').value,
+    page:       document.getElementById('new-hc-page').value,
+    journal:    document.getElementById('new-hc-journal').value,
+    issue:      document.getElementById('new-hc-issue').value,
+    editor:     document.getElementById('new-hc-editor').value,
+    booktitle:  document.getElementById('new-hc-booktitle').value,
+    url:        document.getElementById('new-hc-url').value,
+    notes:      document.getElementById('new-hc-notes').value
+  };
+  fetch('/hardcopy/add', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({fields})
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.source_id) {
+      selectedHardcopyId = d.source_id;
+      const page = fields.page;
+      fetch('/hardcopy/cite', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          session_id: SESSION_ID, sentence_id: currentManualSentenceId,
+          source_id: d.source_id, page
+        })
+      })
+      .then(r => r.json())
+      .then(d2 => {
+        if (d2.status === 'confirmed') {
+          const card = document.getElementById(`card-${currentManualSentenceId}`);
+          card.classList.remove('pending'); card.classList.add('approved');
+          card.querySelector('.card-status').textContent = 'Approved';
+          card.querySelector('.card-status').className = 'card-status status-approved';
+          closeManualModal();
+          showToast('Source saved to hard-copy library and citation confirmed.');
+          updateProgress(); checkFinalise();
+        }
+      });
+    }
+  });
+}
+
+// ── Manage Styles modal (Change 1) ─────────────────────────────────────────
+function openStylesModal() {
+  document.getElementById('styles-modal').classList.add('visible');
+  switchStyleTab('library');
+  refreshStylesList();
+  renderManualTemplates();
+}
+
+function closeStylesModal() {
+  document.getElementById('styles-modal').classList.remove('visible');
+}
+
+function switchStyleTab(tab) {
+  const tabs = ['library','upload','manual'];
+  document.querySelectorAll('#styles-modal .modal-tab').forEach((t, i) => {
+    t.classList.toggle('active', tabs[i] === tab);
+  });
+  document.getElementById('style-tab-library').classList.toggle('active', tab === 'library');
+  document.getElementById('style-tab-upload').classList.toggle('active', tab === 'upload');
+  document.getElementById('style-tab-manual').classList.toggle('active', tab === 'manual');
+}
+
+function refreshStylesList() {
+  fetch('/styles/list')
+    .then(r => r.json())
+    .then(d => {
+      const tbody = document.getElementById('styles-table-body');
+      if (!d.styles.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="color:#888;text-align:center;padding:20px;">No styles saved yet. Add one from a PDF or manually.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = d.styles.map(s =>
+        `<tr>
+          <td><strong>${s.name}</strong></td>
+          <td style="color:#888;font-size:.78rem;">${s.source_pdf || '—'}</td>
+          <td style="color:#888;font-size:.78rem;">${s.added ? s.added.slice(0,10) : '—'}</td>
+          <td>
+            <button class="btn-sm btn-sm-danger"
+                    onclick="deleteStyle('${s.id}')">Delete</button>
+          </td>
+        </tr>`
+      ).join('');
+    });
+}
+
+function deleteStyle(styleId) {
+  if (!confirm('Delete this style?')) return;
+  fetch(`/styles/${styleId}`, {method:'DELETE'})
+    .then(() => { refreshStylesList(); showToast('Style deleted.'); });
+}
+
+// ── PDF upload and parsing ─────────────────────────────────────────────────
+function handlePdfUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('pdf-parse-spinner').classList.add('visible');
+  document.getElementById('parsed-review-panel').style.display = 'none';
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  fetch('/styles/parse_pdf', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('pdf-parse-spinner').classList.remove('visible');
+      if (d.error) { showToast('Parse error: ' + d.error); return; }
+      parsedStyleData = d.parsed;
+      renderParsedReview(d.parsed);
+      document.getElementById('parsed-review-panel').style.display = 'block';
+    })
+    .catch(e => {
+      document.getElementById('pdf-parse-spinner').classList.remove('visible');
+      showToast('Upload failed. Ensure pdfplumber is installed.');
+    });
+}
+
+function renderParsedReview(parsed) {
+  document.getElementById('parsed-style-name').value = parsed.name || '';
+  document.getElementById('parsed-citation-mode').value = parsed.citation_mode || 'footnote';
+  document.getElementById('parsed-author-sep').value = parsed.author_separator || ' and ';
+  document.getElementById('parsed-ibid').checked = parsed.ibid_used || false;
+  document.getElementById('parsed-shortform').checked = parsed.short_form_used || false;
+  document.getElementById('parsed-notes').value = parsed.notes || '';
+
+  const container = document.getElementById('parsed-templates-container');
+  container.innerHTML = '';
+  const templates = parsed.templates || {};
+  const examples  = parsed.raw_examples || {};
+
+  ENTRY_TYPES.forEach(type => {
+    const div = document.createElement('div');
+    div.className = 'template-row';
+    const tpl = templates[type] || '';
+    const ex  = examples[type]  || '';
+    div.innerHTML = `
+      <label>${type}</label>
+      ${ex ? `<div class="raw-example">Example found: ${ex}</div>` : ''}
+      <input type="text" id="parsed-tpl-${type}" value="${tpl.replace(/"/g,'&quot;')}"
+             placeholder="e.g. {author}, {title} ({place}: {publisher}, {year}), {page}.">
+    `;
+    container.appendChild(div);
+  });
+}
+
+function saveParsedStyle() {
+  const name = document.getElementById('parsed-style-name').value.trim();
+  if (!name) { showToast('Enter a style name.'); return; }
+  const templates = {};
+  ENTRY_TYPES.forEach(type => {
+    const input = document.getElementById(`parsed-tpl-${type}`);
+    if (input && input.value.trim()) templates[type] = input.value.trim();
+  });
+  const style = {
+    name,
+    source_pdf:         parsedStyleData ? parsedStyleData.source_pdf || '' : '',
+    citation_mode:      document.getElementById('parsed-citation-mode').value,
+    author_separator:   document.getElementById('parsed-author-sep').value || ' and ',
+    ibid_used:          document.getElementById('parsed-ibid').checked,
+    short_form_used:    document.getElementById('parsed-shortform').checked,
+    unknown_placeholder: '[UNKNOWN — VERIFY]',
+    templates,
+    short_form_templates: {},
+    notes:              document.getElementById('parsed-notes').value
+  };
+  fetch('/styles/save', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({style})
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.status === 'saved') {
+      showToast(`Style "${name}" saved.`);
+      switchStyleTab('library');
+      refreshStylesList();
+      resetPdfUpload();
+    }
+  });
+}
+
+function resetPdfUpload() {
+  document.getElementById('pdf-file-input').value = '';
+  document.getElementById('parsed-review-panel').style.display = 'none';
+  document.getElementById('pdf-parse-spinner').classList.remove('visible');
+  parsedStyleData = null;
+}
+
+// ── Manual style entry ─────────────────────────────────────────────────────
+function renderManualTemplates() {
+  const container = document.getElementById('manual-templates-container');
+  container.innerHTML = '';
+  ENTRY_TYPES.forEach(type => {
+    const div = document.createElement('div');
+    div.className = 'template-row';
+    div.innerHTML = `
+      <label>${type}</label>
+      <input type="text" id="manual-tpl-${type}"
+             placeholder="{author}, {title} ({place}: {publisher}, {year}), {page}.">
+    `;
+    container.appendChild(div);
+  });
+}
+
+function saveManualStyle() {
+  const name = document.getElementById('manual-style-name').value.trim();
+  if (!name) { showToast('Enter a style name.'); return; }
+  const templates = {};
+  ENTRY_TYPES.forEach(type => {
+    const input = document.getElementById(`manual-tpl-${type}`);
+    if (input && input.value.trim()) templates[type] = input.value.trim();
+  });
+  const style = {
+    name,
+    source_pdf:          '',
+    citation_mode:       document.getElementById('manual-citation-mode').value,
+    author_separator:    document.getElementById('manual-author-sep').value || ' and ',
+    ibid_used:           document.getElementById('manual-ibid').checked,
+    short_form_used:     document.getElementById('manual-shortform').checked,
+    unknown_placeholder: '[UNKNOWN — VERIFY]',
+    templates,
+    short_form_templates: {},
+    notes: ''
+  };
+  fetch('/styles/save', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({style})
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.status === 'saved') {
+      showToast(`Style "${name}" saved.`);
+      switchStyleTab('library');
+      refreshStylesList();
+    }
+  });
+}
+
+// ── Step 2 action buttons ──────────────────────────────────────────────────
+function importChromeTabs() {
+  showToast('Launching tab importer... check your terminal.');
+  // In production: call an endpoint that runs the tab importer
+  fetch('/tab_import_queue')
+    .then(() => window.open('/tab_import_queue', '_blank'));
+}
+
+function processDocument() {
+  showToast('Open a terminal and run: python run.py process <document.md>');
+}
+
+function openReviewPanel() {
+  if (SESSION_ID) window.location.href = `/review/${SESSION_ID}`;
+  else showToast('No active session. Process a document first.');
+}
+
+function exportDocument() {
+  showToast('Open a terminal and run: python run.py export <document.md>');
+}
+
+// ── Finalise ───────────────────────────────────────────────────────────────
+function finaliseSession() {
+  showToast('Session finalised. Run export to produce the .docx file.');
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3200);
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "style_name": "chicago-notes",
+  "csl_file": "sources/styles/chicago-fullnote-bibliography.csl",
+  "ibid_used": false,
+  "short_form_used": false,
+  "citation_mode": "footnote",
+  "author_separator": " and ",
+  "unknown_placeholder": "[UNKNOWN — VERIFY]",
+  "templates": {
+    "book": "{author}, {title} ({place}: {publisher}, {year}), {page}.",
+    "article": "{author}, '{title}', {journal} {volume}/{issue} ({year}), {page}.",
+    "incollection": "{author}, '{title}', in {editor} (ed), {booktitle} ({place}: {publisher}, {year}), {page}.",
+    "phdthesis": "{author}, '{title}' (PhD thesis, {institution}, {year}), {page}.",
+    "misc": "{author}, '{title}', {url} (accessed {accessdate}).",
+    "legislation": "{title} {year} ({jurisdiction}) {section}.",
+    "case": "{title} [{year}] {report} {page}."
+  }
+}

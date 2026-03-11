@@ -1,0 +1,13 @@
+{
+  "bib_path": "sources/library.bib",
+  "pdfs_dir": "sources/pdfs",
+  "default_style_profile": "config/style_profile.json",
+  "db_path": "index/metadata.db",
+  "faiss_path": "index/faiss_index.bin",
+  "bm25_path": "index/bm25_index.pkl",
+  "review_port": 8000,
+  "similarity_threshold": 0.40,
+  "hybrid_weights": { "semantic": 0.6, "bm25": 0.4 },
+  "retrieval_top_k": 20,
+  "rerank_top_k": 5
+}
