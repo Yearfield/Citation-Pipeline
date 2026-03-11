@@ -293,7 +293,8 @@ def _append_bibliography(doc, session_id):
             if sid not in seen:
                 seen[sid] = entry
 
-    # Also collect hard-copy sources from session confirmed map
+    # Collect hard-copy sources from session confirmed map
+    hc_entries = []
     for sid_str, data in session.get("confirmed", {}).items():
         if data.get("source_type") == "hardcopy":
             from pipeline.hardcopy import get_by_id, to_row
@@ -301,23 +302,18 @@ def _append_bibliography(doc, session_id):
             if source and source["source_id"] not in seen:
                 seen[source["source_id"]] = True
                 row = to_row(source)
-                bib = _format_bib_entry(row)
-                if not hasattr(_append_bibliography, '_hc_entries'):
-                    _append_bibliography._hc_entries = []
-                _append_bibliography._hc_entries.append(bib)
+                hc_entries.append(_format_bib_entry(row))
 
-    if not seen and not hasattr(_append_bibliography, '_hc_entries'):
+    if not seen and not hc_entries:
         return
 
     doc.add_page_break()
     doc.add_heading("Bibliography", level=1)
 
-    if hasattr(_append_bibliography, '_hc_entries'):
-        for bib in _append_bibliography._hc_entries:
-            p = doc.add_paragraph(bib)
-            p.paragraph_format.left_indent = Inches(0.5)
-            p.paragraph_format.first_line_indent = Inches(-0.5)
-        del _append_bibliography._hc_entries
+    for bib in hc_entries:
+        p = doc.add_paragraph(bib)
+        p.paragraph_format.left_indent = Inches(0.5)
+        p.paragraph_format.first_line_indent = Inches(-0.5)
 
     conn = sqlite3.connect("index/metadata.db")
     for entry in sorted(seen.values(), key=lambda x: x.get("source_title", "") or ""):

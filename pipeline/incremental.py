@@ -21,8 +21,10 @@ def mark_confirmed(sentence, session_id, citation):
         'session_id': session_id,
         'citation': citation
     }
-    with open(CONFIRMED_PATH, 'w') as f:
+    tmp = CONFIRMED_PATH + '.tmp'
+    with open(tmp, 'w') as f:
         json.dump(confirmed, f, indent=2)
+    os.replace(tmp, CONFIRMED_PATH)
 
 
 def filter_new(triggers):
@@ -46,5 +48,7 @@ def clear_document(doc_name):
     # Requires that session metadata records the document name
     updated = {k: v for k, v in confirmed.items()
                if v.get('doc') != doc_name}
-    with open(CONFIRMED_PATH, 'w') as f:
+    tmp = CONFIRMED_PATH + '.tmp'
+    with open(tmp, 'w') as f:
         json.dump(updated, f, indent=2)
+    os.replace(tmp, CONFIRMED_PATH)

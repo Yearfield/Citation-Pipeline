@@ -1,4 +1,5 @@
 # pipeline/reranker.py
+import math
 import sqlite3
 from sentence_transformers import CrossEncoder
 
@@ -53,7 +54,7 @@ def rerank(sentence, hybrid_results, conn, top_k=5):
     for i, cand in enumerate(candidates):
         raw_ce = float(ce_scores[i])
         # Normalise CE score from logit range to approx 0–1
-        norm_ce = 1.0 / (1.0 + pow(2.718, -raw_ce))
+        norm_ce = 1.0 / (1.0 + math.exp(-raw_ce))
         cand['ce_score'] = raw_ce
         cand['ce_norm'] = norm_ce
         cand['confidence'] = (

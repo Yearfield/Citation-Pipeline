@@ -14,8 +14,10 @@ def _load():
 
 
 def _save(library):
-    with open(LIBRARY_PATH, 'w') as f:
+    tmp = LIBRARY_PATH + '.tmp'
+    with open(tmp, 'w') as f:
         json.dump(library, f, indent=2)
+    os.replace(tmp, LIBRARY_PATH)
 
 
 def add_source(fields):

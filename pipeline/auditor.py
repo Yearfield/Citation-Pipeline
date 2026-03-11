@@ -1,5 +1,5 @@
 # pipeline/auditor.py
-import json, os, hashlib
+import json, os, hashlib, fcntl
 from datetime import datetime
 
 
@@ -27,13 +27,19 @@ def log(session_id, sentence, action, row=None,
         'denial_reason':  denial_reason
     }
     path = os.path.join('audit_logs', f'{session_id}.json')
-    existing = []
-    if os.path.exists(path):
-        with open(path) as f:
-            existing = json.load(f)
-    existing.append(entry)
-    with open(path, 'w') as f:
-        json.dump(existing, f, indent=2)
+    os.makedirs('audit_logs', exist_ok=True)
+    lockpath = path + '.lock'
+    with open(lockpath, 'w') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        existing = []
+        if os.path.exists(path):
+            with open(path) as f:
+                existing = json.load(f)
+        existing.append(entry)
+        tmp = path + '.tmp'
+        with open(tmp, 'w') as f:
+            json.dump(existing, f, indent=2)
+        os.replace(tmp, path)
 
 
 def get_confirmed(session_id):

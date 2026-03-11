@@ -1,0 +1,48 @@
+name: Daily Improvement Loop
+
+on:
+  schedule:
+    - cron: "0 3 * * *"   # 3 AM UTC every day
+  workflow_dispatch:        # Manual trigger from GitHub UI
+
+permissions:
+  contents: write           # Needed to push improvement commits
+
+jobs:
+  improve:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install script dependencies
+        run: pip install anthropic
+
+      - name: Configure git identity
+        run: |
+          git config user.name  "Citation Pipeline Bot"
+          git config user.email "bot@citation-pipeline.local"
+
+      - name: Run daily improvement loop
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python daily_improve.py
+
+      - name: Push improvements (if any)
+        run: |
+          # Push only if the loop created a new commit
+          if git log --oneline -1 | grep -q "Daily improvement pass"; then
+            git push origin HEAD
+            echo "Improvements pushed."
+          else
+            echo "No new commit to push."
+          fi
